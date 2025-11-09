@@ -15,6 +15,7 @@ A professional Blender addon and Python script for creating customizable 3D prin
 ## ✨ Features
 
 - 🎨 **Full UI Addon** - Point-and-click interface in Blender sidebar
+- 📝 **Multi-Line Text** - Up to 4 lines per label for detailed organization
 - 🐍 **Python Script** - Reusable code for automation
 - 📐 **Fully Customizable** - Adjust all dimensions, text, and holes
 - 📋 **Batch Creation** - Create multiple labels at once
@@ -22,6 +23,7 @@ A professional Blender addon and Python script for creating customizable 3D prin
 - 💾 **Auto-Export** - Automatic STL export
 - 🔧 **4 Mounting Holes** - Pre-positioned for standard hardware
 - 📝 **Mirrored Text** - Readable from both sides
+- 🔒 **Safe Filenames** - Robust sanitization for all operating systems
 - ⚡ **Fast** - 360× faster than manual creation
 
 ---
@@ -179,6 +181,26 @@ Orientation:   Print flat (as created)
 
 ## 💡 Examples
 
+### Create a Multi-Line Label
+
+**Addon:**
+```
+Line 1: Zone 1
+Line 2: Heat Only
+Line 3: Main Floor
+Click "Create Label"
+```
+
+**Script:**
+```python
+create_label(
+    line1="Zone 1",
+    line2="Heat Only",
+    line3="Main Floor",
+    export_path="/path/output.stl"
+)
+```
+
 ### Create a Custom Label
 
 **Addon:**
@@ -187,14 +209,14 @@ Size Preset: Custom
 Width: 75mm
 Height: 20mm
 Text Size: 5mm
-Text: "Power Tools"
+Line 1: "Power Tools"
 ```
 
 **Script:**
 ```python
 create_label(
-    "Power Tools",
-    "/path/output.stl",
+    line1="Power Tools",
+    export_path="/path/output.stl",
     base_width=75.0,
     base_height=20.0,
     text_size=5.0
@@ -207,17 +229,23 @@ create_label(
 ```
 Batch Creation panel
 > Add labels manually or load presets
+> Edit lines for each label
 > Enable auto-export
 > Create Batch
 ```
 
 **Script:**
 ```python
-labels = [
-    "Kitchen", "Bathroom", "Living Room",
-    "Bedroom", "Office", "Garage"
-]
-create_label_batch(labels, "/output/")
+# Simple single-line labels
+create_label("Kitchen", export_path="/output/Kitchen.stl")
+create_label("Bathroom", export_path="/output/Bathroom.stl")
+
+# Or multi-line
+create_label(
+    line1="Zone 1",
+    line2="HVAC",
+    export_path="/output/Zone1.stl"
+)
 ```
 
 ---

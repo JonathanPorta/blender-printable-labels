@@ -73,43 +73,125 @@ def write_stl_binary(filepath, mesh):
             f.write(struct.pack('<H', 0))
 
 
+def sanitize_filename(text):
+    """
+    Sanitize text for use in filenames.
+    Removes or replaces characters that can cause issues in filenames.
+    """
+    # Replace spaces with underscores
+    text = text.replace(" ", "_")
+    
+    # Remove or replace problematic characters
+    replacements = {
+        '/': '_',
+        '\\': '_',
+        ':': '_',
+        '*': '_',
+        '?': '_',
+        '"': '_',
+        '<': '_',
+        '>': '_',
+        '|': '_',
+        '(': '',
+        ')': '',
+        '[': '',
+        ']': '',
+        '{': '',
+        '}': '',
+        '&': 'and',
+        '%': 'pct',
+        '#': 'num',
+        '@': 'at',
+    }
+    
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    
+    # Remove any other non-alphanumeric characters except underscore, dash, and dot
+    text = ''.join(c for c in text if c.isalnum() or c in ('_', '-', '.'))
+    
+    # Remove leading/trailing underscores and collapse multiple underscores
+    text = '_'.join(filter(None, text.split('_')))
+    
+    # Ensure it's not empty
+    if not text:
+        text = "label"
+    
+    return text
+
+
 def create_label_mesh(context, props):
     """Create a label mesh based on properties."""
     
     z_pos = props.base_thickness / 2
     
+    # Collect all non-empty text lines
+    lines = []
+    if props.line1.strip():
+        lines.append(props.line1.strip())
+    if props.line2.strip():
+        lines.append(props.line2.strip())
+    if props.line3.strip():
+        lines.append(props.line3.strip())
+    if props.line4.strip():
+        lines.append(props.line4.strip())
+    
+    if not lines:
+        lines = ["Label"]  # Default if all empty
+    
     # 1. Create base
     bpy.ops.mesh.primitive_cube_add(location=(0, 0, z_pos))
     base = context.active_object
-    clean_name = props.label_text.replace(" ", "_").replace("/", "_")
+    clean_name = sanitize_filename(lines[0])  # Use first line for object name
     base.name = f"Label_{clean_name}"
     
     base.scale = (props.base_width / 2, props.base_height / 2, props.base_thickness / 2)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     
-    # 2. Add text
+    # 2. Add text - multiple lines
     text_z = props.base_thickness + (props.text_extrude / 2)
-    bpy.ops.object.text_add(location=(0, 0, text_z))
-    text_obj = context.active_object
-    text_obj.data.body = props.label_text
-    text_obj.data.size = props.text_size
-    text_obj.data.align_x = 'CENTER'
-    text_obj.data.align_y = 'CENTER'
-    text_obj.data.extrude = props.text_extrude
+    text_objects = []
     
-    bpy.ops.object.convert(target='MESH')
+    # Calculate vertical spacing between lines
+    line_count = len(lines)
+    total_text_height = props.text_size * line_count
+    line_spacing = props.text_size * 1.2  # 20% spacing between lines
     
-    # 3. Mirror text
-    if props.mirror_text:
-        mirror = text_obj.modifiers.new(name="Mirror", type='MIRROR')
-        mirror.use_axis[0] = False
-        mirror.use_axis[1] = True
-        mirror.use_axis[2] = False
-        bpy.ops.object.modifier_apply(modifier="Mirror")
+    # Calculate starting Y position (centered vertically)
+    if line_count > 1:
+        start_y = (line_count - 1) * line_spacing / 2
+    else:
+        start_y = 0
     
-    # 4. Join text to base
+    for i, line_text in enumerate(lines):
+        # Calculate Y position for this line
+        y_offset = start_y - (i * line_spacing)
+        
+        bpy.ops.object.text_add(location=(0, y_offset, text_z))
+        text_obj = context.active_object
+        text_obj.data.body = line_text
+        text_obj.data.size = props.text_size
+        text_obj.data.align_x = 'CENTER'
+        text_obj.data.align_y = 'CENTER'
+        text_obj.data.extrude = props.text_extrude
+        
+        # Convert to mesh
+        bpy.ops.object.convert(target='MESH')
+        
+        # Mirror text
+        if props.mirror_text:
+            mirror = text_obj.modifiers.new(name="Mirror", type='MIRROR')
+            mirror.use_axis[0] = False
+            mirror.use_axis[1] = True
+            mirror.use_axis[2] = False
+            bpy.ops.object.modifier_apply(modifier="Mirror")
+        
+        text_objects.append(text_obj)
+    
+    # 3. Join all text objects to base
     bpy.ops.object.select_all(action='DESELECT')
-    text_obj.select_set(True)
+    for text_obj in text_objects:
+        text_obj.select_set(True)
     base.select_set(True)
     context.view_layer.objects.active = base
     bpy.ops.object.join()
@@ -178,11 +260,29 @@ def export_label_stl(obj, filepath):
 class LabelGeneratorProperties(PropertyGroup):
     """Properties for label generation."""
     
-    # Label text
-    label_text: StringProperty(
-        name="Label Text",
-        description="Text to display on the label",
+    # Label text - up to 4 lines
+    line1: StringProperty(
+        name="Line 1",
+        description="First line of text",
         default="My Label"
+    )
+    
+    line2: StringProperty(
+        name="Line 2",
+        description="Second line of text (optional)",
+        default=""
+    )
+    
+    line3: StringProperty(
+        name="Line 3",
+        description="Third line of text (optional)",
+        default=""
+    )
+    
+    line4: StringProperty(
+        name="Line 4",
+        description="Fourth line of text (optional)",
+        default=""
     )
     
     # Base dimensions
@@ -302,9 +402,27 @@ class LabelGeneratorProperties(PropertyGroup):
 class BatchLabelItem(PropertyGroup):
     """Single label item for batch creation."""
     
-    label_text: StringProperty(
-        name="Label Text",
-        description="Text for this label",
+    line1: StringProperty(
+        name="Line 1",
+        description="First line of text",
+        default=""
+    )
+    
+    line2: StringProperty(
+        name="Line 2",
+        description="Second line of text (optional)",
+        default=""
+    )
+    
+    line3: StringProperty(
+        name="Line 3",
+        description="Third line of text (optional)",
+        default=""
+    )
+    
+    line4: StringProperty(
+        name="Line 4",
+        description="Fourth line of text (optional)",
         default=""
     )
     
@@ -356,14 +474,17 @@ class OBJECT_OT_create_label(Operator):
         # Create the label
         label = create_label_mesh(context, props)
         
+        # Generate filename from first non-empty line
+        label_name = props.line1.strip() or props.line2.strip() or props.line3.strip() or props.line4.strip() or "Label"
+        
         # Export if enabled
         if props.auto_export:
-            filename = props.label_text.replace(" ", "_") + ".stl"
+            filename = sanitize_filename(label_name) + ".stl"
             filepath = bpy.path.abspath(props.export_path + filename)
             export_label_stl(label, filepath)
             self.report({'INFO'}, f"Label created and exported to {filepath}")
         else:
-            self.report({'INFO'}, f"Label '{props.label_text}' created")
+            self.report({'INFO'}, f"Label '{label_name}' created")
         
         return {'FINISHED'}
 
@@ -380,24 +501,40 @@ class OBJECT_OT_create_batch_labels(Operator):
         
         created_count = 0
         for item in batch_props.labels:
-            if item.enabled and item.label_text.strip():
-                # Temporarily set the label text
-                original_text = props.label_text
-                props.label_text = item.label_text
+            # Check if at least one line has text
+            has_text = any([item.line1.strip(), item.line2.strip(), item.line3.strip(), item.line4.strip()])
+            
+            if item.enabled and has_text:
+                # Temporarily set the label text lines
+                original_line1 = props.line1
+                original_line2 = props.line2
+                original_line3 = props.line3
+                original_line4 = props.line4
+                
+                props.line1 = item.line1
+                props.line2 = item.line2
+                props.line3 = item.line3
+                props.line4 = item.line4
                 
                 # Create label
                 label = create_label_mesh(context, props)
                 
+                # Generate filename from first non-empty line
+                label_name = item.line1.strip() or item.line2.strip() or item.line3.strip() or item.line4.strip()
+                
                 # Export if enabled
                 if props.auto_export:
-                    filename = item.label_text.replace(" ", "_") + ".stl"
+                    filename = sanitize_filename(label_name) + ".stl"
                     filepath = bpy.path.abspath(props.export_path + filename)
                     export_label_stl(label, filepath)
                 
                 created_count += 1
                 
                 # Restore original text
-                props.label_text = original_text
+                props.line1 = original_line1
+                props.line2 = original_line2
+                props.line3 = original_line3
+                props.line4 = original_line4
         
         self.report({'INFO'}, f"Created {created_count} labels")
         return {'FINISHED'}
@@ -412,7 +549,7 @@ class OBJECT_OT_add_batch_label(Operator):
     def execute(self, context):
         batch_props = context.scene.batch_labels
         item = batch_props.labels.add()
-        item.label_text = f"Label {len(batch_props.labels)}"
+        item.line1 = f"Label {len(batch_props.labels)}"
         batch_props.active_index = len(batch_props.labels) - 1
         return {'FINISHED'}
 
@@ -474,7 +611,7 @@ class OBJECT_OT_load_preset_labels(Operator):
         
         for text in preset_labels:
             item = batch_props.labels.add()
-            item.label_text = text
+            item.line1 = text
             item.enabled = True
         
         self.report({'INFO'}, f"Loaded {len(preset_labels)} preset labels")
@@ -497,10 +634,14 @@ class VIEW3D_PT_label_generator(Panel):
         layout = self.layout
         props = context.scene.label_generator
         
-        # Label text
+        # Label text - up to 4 lines
         box = layout.box()
         box.label(text="Label Text:", icon='FONT_DATA')
-        box.prop(props, "label_text", text="")
+        col = box.column(align=True)
+        col.prop(props, "line1", text="Line 1")
+        col.prop(props, "line2", text="Line 2")
+        col.prop(props, "line3", text="Line 3")
+        col.prop(props, "line4", text="Line 4")
         
         # Size preset
         box = layout.box()
@@ -582,7 +723,11 @@ class VIEW3D_PT_batch_labels(Panel):
         if batch_props.labels and batch_props.active_index < len(batch_props.labels):
             item = batch_props.labels[batch_props.active_index]
             box = layout.box()
-            box.prop(item, "label_text", text="Text")
+            col = box.column(align=True)
+            col.prop(item, "line1", text="Line 1")
+            col.prop(item, "line2", text="Line 2")
+            col.prop(item, "line3", text="Line 3")
+            col.prop(item, "line4", text="Line 4")
             box.prop(item, "enabled", text="Include in Batch")
         
         # Create batch button

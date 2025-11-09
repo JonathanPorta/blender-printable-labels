@@ -23,6 +23,59 @@ import struct
 import os
 
 
+def sanitize_filename(text):
+    """
+    Sanitize text for use in filenames.
+    Removes or replaces characters that can cause issues in filenames.
+    
+    Args:
+        text (str): Text to sanitize
+        
+    Returns:
+        str: Sanitized filename-safe text
+    """
+    # Replace spaces with underscores
+    text = text.replace(" ", "_")
+    
+    # Remove or replace problematic characters
+    replacements = {
+        '/': '_',
+        '\\': '_',
+        ':': '_',
+        '*': '_',
+        '?': '_',
+        '"': '_',
+        '<': '_',
+        '>': '_',
+        '|': '_',
+        '(': '',
+        ')': '',
+        '[': '',
+        ']': '',
+        '{': '',
+        '}': '',
+        '&': 'and',
+        '%': 'pct',
+        '#': 'num',
+        '@': 'at',
+    }
+    
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    
+    # Remove any other non-alphanumeric characters except underscore, dash, and dot
+    text = ''.join(c for c in text if c.isalnum() or c in ('_', '-', '.'))
+    
+    # Remove leading/trailing underscores and collapse multiple underscores
+    text = '_'.join(filter(None, text.split('_')))
+    
+    # Ensure it's not empty
+    if not text:
+        text = "label"
+    
+    return text
+
+
 def write_stl_binary(filepath, mesh):
     """
     Write a mesh to an STL file in binary format.
@@ -56,7 +109,10 @@ def write_stl_binary(filepath, mesh):
 
 
 def create_label(
-    label_text,
+    line1="",
+    line2="",
+    line3="",
+    line4="",
     export_path=None,
     base_width=50.0,
     base_height=12.5,
@@ -70,10 +126,13 @@ def create_label(
     delete_cylinders=True
 ):
     """
-    Create a 3D printable closet label with mounting holes.
+    Create a 3D printable label with up to 4 lines of text and mounting holes.
     
     Args:
-        label_text (str): Text to display on the label
+        line1 (str): First line of text (required, or at least one line must be provided)
+        line2 (str): Second line of text (optional)
+        line3 (str): Third line of text (optional)
+        line4 (str): Fourth line of text (optional)
         export_path (str, optional): Full path to export STL file. If None, doesn't export.
         base_width (float): Width of the label in mm (default: 50.0)
         base_height (float): Height of the label in mm (default: 12.5)
@@ -90,50 +149,88 @@ def create_label(
         bpy.types.Object: The created label object
         
     Example:
-        >>> label = create_label("Kitchen", "/home/user/Kitchen.stl")
-        >>> # Or without export:
-        >>> label = create_label("Kitchen")
+        >>> # Single line
+        >>> label = create_label("Kitchen", export_path="/home/user/Kitchen.stl")
+        >>> 
+        >>> # Multiple lines
+        >>> label = create_label("Zone 1", "Heat Only", "Main Floor", export_path="/home/user/Zone1.stl")
+        >>> 
+        >>> # With keyword arguments
+        >>> label = create_label(line1="Hot Water", line2="120°F", base_width=60.0)
     """
     
     # Calculate z position (center of label thickness)
     z_pos = base_thickness / 2
     
+    # Collect all non-empty text lines
+    lines = []
+    if line1.strip():
+        lines.append(line1.strip())
+    if line2.strip():
+        lines.append(line2.strip())
+    if line3.strip():
+        lines.append(line3.strip())
+    if line4.strip():
+        lines.append(line4.strip())
+    
+    if not lines:
+        lines = ["Label"]  # Default if all empty
+    
     # 1. Create the base cube
     bpy.ops.mesh.primitive_cube_add(location=(0, 0, z_pos))
     base = bpy.context.active_object
     
-    # Create a clean object name
-    clean_name = label_text.replace(" ", "_").replace("/", "_")
+    # Create a clean object name from first line
+    clean_name = sanitize_filename(lines[0])
     base.name = f"Label_{clean_name}"
     
     # Scale to specified dimensions
     base.scale = (base_width / 2, base_height / 2, base_thickness / 2)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     
-    # 2. Add text
+    # 2. Add text - multiple lines
     text_z = base_thickness + (text_extrude / 2)
-    bpy.ops.object.text_add(location=(0, 0, text_z))
-    text_obj = bpy.context.active_object
-    text_obj.data.body = label_text
-    text_obj.data.size = text_size
-    text_obj.data.align_x = 'CENTER'
-    text_obj.data.align_y = 'CENTER'
-    text_obj.data.extrude = text_extrude
+    text_objects = []
     
-    # Convert to mesh
-    bpy.ops.object.convert(target='MESH')
+    # Calculate vertical spacing between lines
+    line_count = len(lines)
+    line_spacing = text_size * 1.2  # 20% spacing between lines
     
-    # 3. Mirror the text (if enabled)
-    if mirror_text:
-        mirror = text_obj.modifiers.new(name="Mirror", type='MIRROR')
-        mirror.use_axis[0] = False  # Don't mirror X
-        mirror.use_axis[1] = True   # Mirror Y
-        mirror.use_axis[2] = False  # Don't mirror Z
-        bpy.ops.object.modifier_apply(modifier="Mirror")
+    # Calculate starting Y position (centered vertically)
+    if line_count > 1:
+        start_y = (line_count - 1) * line_spacing / 2
+    else:
+        start_y = 0
     
-    # 4. Join text to base
+    for i, line_text in enumerate(lines):
+        # Calculate Y position for this line
+        y_offset = start_y - (i * line_spacing)
+        
+        bpy.ops.object.text_add(location=(0, y_offset, text_z))
+        text_obj = bpy.context.active_object
+        text_obj.data.body = line_text
+        text_obj.data.size = text_size
+        text_obj.data.align_x = 'CENTER'
+        text_obj.data.align_y = 'CENTER'
+        text_obj.data.extrude = text_extrude
+        
+        # Convert to mesh
+        bpy.ops.object.convert(target='MESH')
+        
+        # Mirror the text (if enabled)
+        if mirror_text:
+            mirror = text_obj.modifiers.new(name="Mirror", type='MIRROR')
+            mirror.use_axis[0] = False  # Don't mirror X
+            mirror.use_axis[1] = True   # Mirror Y
+            mirror.use_axis[2] = False  # Don't mirror Z
+            bpy.ops.object.modifier_apply(modifier="Mirror")
+        
+        text_objects.append(text_obj)
+    
+    # 3. Join all text objects to base
     bpy.ops.object.select_all(action='DESELECT')
-    text_obj.select_set(True)
+    for text_obj in text_objects:
+        text_obj.select_set(True)
     base.select_set(True)
     bpy.context.view_layer.objects.active = base
     bpy.ops.object.join()
@@ -242,13 +339,13 @@ def create_label_batch(labels, output_dir, **kwargs):
         # Handle both tuple and string input
         if isinstance(item, tuple):
             label_text, filename = item
+            # Sanitize the provided filename (remove extension, sanitize, re-add extension)
+            if filename.endswith('.stl'):
+                filename = filename[:-4]
+            filename = sanitize_filename(filename) + '.stl'
         else:
             label_text = item
-            filename = f"{label_text.replace(' ', '_')}.stl"
-        
-        # Ensure filename has .stl extension
-        if not filename.endswith('.stl'):
-            filename += '.stl'
+            filename = sanitize_filename(label_text) + '.stl'
         
         export_path = os.path.join(output_dir, filename)
         
@@ -298,36 +395,48 @@ if __name__ == "__main__":
     # Clear any existing labels (optional)
     clear_existing_labels()
     
-    # Define your labels
-    # Format: (label_text, filename) or just label_text
+    # Example 1: Single-line labels (simple batch)
     labels = [
-        ("EMS Shirts", "EMS_Shirts.stl"),
-        ("EMS Pants", "EMS_Pants.stl"),
-        ("Work Shirts", "Work_Shirts.stl"),
-        ("Work Pants", "Work_Pants.stl"),
-        ("Cold Weather", "Cold_Weather.stl"),
-        ("Golf Shirts", "Golf_Shirts.stl"),
-        ("Dress Shirts", "Dress_Shirts.stl"),
-        ("Regular T Shirts", "Regular_T_Shirts.stl"),
-        ("Regular Pants", "Regular_Pants.stl"),
-        ("Dresses", "Dresses.stl")
+        "EMS Shirts",
+        "EMS Pants",
+        "Work Shirts",
+        "Work Pants",
+        "Cold Weather",
     ]
     
     # Output directory
-    output_dir = "/mnt/user-data/outputs"
+    output_dir = "/tmp/labels"
     
     # Create all labels with default settings
-    created_labels = create_label_batch(labels, output_dir)
+    # created_labels = create_label_batch(labels, output_dir)
     
-    # Alternative: Create a single label with custom settings
-    # label = create_label(
-    #     label_text="Custom Label",
-    #     export_path="/path/to/Custom_Label.stl",
-    #     base_width=60.0,           # Wider label
-    #     base_height=15.0,          # Taller label
-    #     text_size=4.0,             # Larger text
-    #     hole_diameter=3.0,         # Bigger holes
-    #     hole_inset=4.0             # Further from edges
-    # )
+    # Example 2: Multi-line labels (manual creation)
+    # Create a label with multiple lines
+    label1 = create_label(
+        line1="Zone 1",
+        line2="Heat Only",
+        line3="Main Floor",
+        export_path=f"{output_dir}/Zone_1.stl"
+    )
+    
+    label2 = create_label(
+        line1="Hot Water",
+        line2="120°F",
+        export_path=f"{output_dir}/Hot_Water.stl",
+        base_width=60.0,    # Wider for longer text
+        text_size=3.5       # Slightly larger text
+    )
+    
+    # Example 3: Single label with custom settings
+    label3 = create_label(
+        line1="Boiler",
+        line2="Room #3",
+        export_path=f"{output_dir}/Boiler_Room_3.stl",
+        base_width=60.0,           # Wider label
+        base_height=15.0,          # Taller label
+        text_size=4.0,             # Larger text
+        hole_diameter=3.0,         # Bigger holes
+        hole_inset=4.0             # Further from edges
+    )
     
     print("\n✓ Script completed successfully!")

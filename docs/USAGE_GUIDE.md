@@ -26,7 +26,7 @@ A reusable Blender script for creating 3D printable closet labels with mounting 
 exec(open("/path/to/label_generator.py").read())
 
 # Create a single label
-label = create_label("Kitchen", "/path/to/Kitchen.stl")
+label = create_label(line1="Kitchen", export_path="/path/to/Kitchen.stl")
 
 # Create multiple labels
 labels = [("Pantry", "Pantry.stl"), ("Garage", "Garage.stl")]
@@ -43,13 +43,14 @@ Create a single label with full customization.
 
 **Basic Usage:**
 ```python
-label = create_label("My Label", "/path/to/output.stl")
+label = create_label(line1="My Label", export_path="/path/to/output.stl")
 ```
 
 **With Custom Settings:**
 ```python
 label = create_label(
-    label_text="Custom Label",
+    line1="Custom Label",
+    line2="Second Line",        # Optional
     export_path="/path/to/output.stl",
     base_width=60.0,           # Width in mm (default: 50.0)
     base_height=15.0,          # Height in mm (default: 12.5)
@@ -68,7 +69,10 @@ label = create_label(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `label_text` | str | *required* | Text to display on the label |
+| `line1` | str | `""` | First line of text (uses "Label" if all lines are empty) |
+| `line2` | str | `""` | Second line of text (optional) |
+| `line3` | str | `""` | Third line of text (optional) |
+| `line4` | str | `""` | Fourth line of text (optional) |
 | `export_path` | str | None | Full path to export STL (None = don't export) |
 | `base_width` | float | 50.0 | Width of label in mm |
 | `base_height` | float | 12.5 | Height of label in mm |
@@ -181,7 +185,7 @@ Useful if you want to manually adjust labels before exporting:
 
 ```python
 # Create labels in scene without exporting
-labels = create_label("Test Label", export_path=None)
+labels = create_label(line1="Test Label", export_path=None)
 
 # Manually adjust in Blender, then export when ready
 ```
@@ -191,7 +195,7 @@ labels = create_label("Test Label", export_path=None)
 ```python
 # Create label but don't apply booleans yet
 label = create_label(
-    "Custom", 
+    line1="Custom",
     export_path=None,
     apply_booleans=False,
     delete_cylinders=False
@@ -323,7 +327,7 @@ class OBJECT_OT_create_label(bpy.types.Operator):
     bl_label = "Create Closet Label"
     
     def execute(self, context):
-        clg.create_label("Test", "/tmp/test.stl")
+        clg.create_label(line1="Test", export_path="/tmp/test.stl")
         return {'FINISHED'}
 ```
 

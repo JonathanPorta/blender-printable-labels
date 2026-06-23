@@ -46,7 +46,10 @@ The addon adds a "Label Maker" tab to the 3D Viewport sidebar with three collaps
 │ ▼ Label Generator           │
 │   ┌─────────────────────┐   │
 │   │ Label Text          │   │
-│   │ [My Label_______]   │   │
+│   │ Line 1 [My Label__] │   │
+│   │ Line 2 [__________] │   │
+│   │ Line 3 [__________] │   │
+│   │ Line 4 [__________] │   │
 │   └─────────────────────┘   │
 │                             │
 │   Size Preset               │
@@ -91,7 +94,7 @@ The addon adds a "Label Maker" tab to the 3D Viewport sidebar with three collaps
 
 1. **Open the sidebar** (Press `N`)
 2. **Click "Label Maker" tab**
-3. **Enter your text** in the "Label Text" field
+3. **Enter your text** in the "Line 1" field (add optional Lines 2–4 for multi-line labels)
 4. **Click "Create Label"** button
 5. Done! Your label appears at the origin (0,0,0)
 
@@ -110,10 +113,14 @@ The addon adds a "Label Maker" tab to the 3D Viewport sidebar with three collaps
 
 ### Main Panel: Label Generator
 
-#### Label Text
-- **Type:** Text input field
-- **What it does:** The text that will appear on your label
-- **Example:** "Kitchen", "Pantry", "Tools"
+#### Label Text (Lines 1–4)
+- **Type:** Four text input fields, each paired with an optional per-line size override
+- **What it does:** The text lines that appear on the label (up to 4 lines)
+- **Line 1:** Required display text — also used as the base filename on export
+- **Lines 2–4:** Optional additional lines; empty lines are skipped automatically
+- **Per-line size:** Each line has a small size field to the right (0 = use the global Text Size)
+- **Example Line 1:** "Kitchen", "Zone 1 HVAC"
+- **Example multi-line:** Line 1 "Zone 1" / Line 2 "Heat Only" / Line 3 "Main Floor"
 
 #### Size Preset Dropdown
 Quick size presets for common use cases:
@@ -183,7 +190,7 @@ Quick size presets for common use cases:
 - **`-` button:** Remove selected label
 
 #### Selected Label Editor
-- **Text:** Edit the text for selected label
+- **Lines 1–4 with per-line size:** Four text input fields, each paired with a size override (0 = global Text Size). Line 1 is shown in the list; Lines 2–4 are optional.
 - **☑ Include in Batch:** Toggle this label on/off
 
 #### Create Batch Button
@@ -210,7 +217,7 @@ Quick size presets for common use cases:
 
 ```
 1. Press N → Label Maker tab
-2. Type "Kitchen" in Label Text
+2. Type "Kitchen" in Line 1
 3. Click "Create Label"
 ✓ Done in 3 clicks!
 ```
@@ -405,10 +412,10 @@ The addon uses standard Blender UI patterns:
 
 Want to modify the addon? Key sections:
 
-- **Line 22:** `bl_info` - Addon metadata
-- **Line 53:** `LabelGeneratorProperties` - All the settings
-- **Line 230:** Operators - The "do something" actions
-- **Line 407:** Panels - The UI layout
+- **Line 23:** `bl_info` - Addon metadata
+- **Line 293:** `LabelGeneratorProperties` - All the settings (including Line 1–4 and per-line sizes)
+- **Line 570:** Operators - The "do something" actions
+- **Line 760:** Panels - The UI layout
 
 ---
 

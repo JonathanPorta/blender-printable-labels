@@ -22,13 +22,15 @@ Blender automatically creates beautiful UI widgets for each property type:
 
 ### Panel 1: Label Generator (Main Panel)
 
-#### 1. Label Text Input
-- **Widget:** Text field
-- **Property:** `StringProperty`
-- **Features:** 
-  - Placeholder text
-  - Clear button
-  - Auto-sanitizes for filenames
+#### 1. Label Text Input (Lines 1–4 with per-line sizes)
+- **Widget:** Four rows of paired text field + size input
+- **Property:** 4 × `StringProperty` + 4 × `FloatProperty` (size overrides)
+- **Features:**
+  - Line 1 is required display text; Lines 2–4 are optional
+  - Each line has a size override field (0 = use global Text Size)
+  - Empty lines are automatically skipped
+  - First non-empty line is used as the export filename base
+  - Auto-sanitizes text for filenames on export
 
 #### 2. Size Preset Dropdown
 - **Widget:** Dropdown menu
@@ -99,7 +101,7 @@ Blender automatically creates beautiful UI widgets for each property type:
   - Creates label with current settings
   - Full undo support
 
-**Total in Main Panel: 17 interactive UI elements**
+**Total in Main Panel: 25+ interactive UI elements**
 
 ---
 
@@ -131,13 +133,14 @@ Blender automatically creates beautiful UI widgets for each property type:
   - Right side of list
   - Auto-updates selection
 
-#### 4. Selected Item Editor (2 fields)
+#### 4. Selected Item Editor (Lines 1–4 with per-line sizes + enabled toggle)
 - **Widgets:**
-  - Text Property: Input field
+  - Four rows of paired text field + size override input
   - Enabled: Checkbox
 - **Features:**
   - Only shows when item selected
-  - Live updates list
+  - Live updates list display (shows first non-empty line)
+  - Per-line size overrides (0 = use global Text Size)
   - Box grouping
 
 #### 5. Create Batch Button
@@ -181,7 +184,7 @@ View3D Sidebar (Press N)
 ├── Item
 └── 🆕 LABEL MAKER ← Your addon tab!
     ├── ▼ Label Generator (expanded by default)
-    │   ├── 📦 Label Text Box
+    │   ├── 📦 Label Text Box (Lines 1–4 with per-line size overrides)
     │   ├── 📦 Size Preset Box
     │   ├── 📦 Dimensions Box
     │   ├── 📦 Text Settings Box
@@ -194,7 +197,7 @@ View3D Sidebar (Press N)
     │   ├── [Load Presets] button
     │   ├── Labels List
     │   ├── List controls (+/-)
-    │   ├── 📦 Item Editor Box
+    │   ├── 📦 Item Editor Box (Lines 1–4 with per-line sizes + enabled toggle)
     │   └── [CREATE BATCH] button
     │
     └── ▶ Utilities (collapsed by default)
@@ -211,7 +214,10 @@ View3D Sidebar (Press N)
 │ ▼ Label Generator              [▼]  │  ← Panel (collapsible)
 │   ┌───────────────────────────────┐ │
 │   │ Label Text:            [icon] │ │  ← Section Header
-│   │ [My Label________________]    │ │  ← Input Widget
+│   │ Line 1 [My Label____] [size]  │ │  ← Text + size input
+│   │ Line 2 [____________] [size]  │ │
+│   │ Line 3 [____________] [size]  │ │
+│   │ Line 4 [____________] [size]  │ │
 │   └───────────────────────────────┘ │
 │                                     │
 │   ┌───────────────────────────────┐ │

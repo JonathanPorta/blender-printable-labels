@@ -132,7 +132,8 @@ def get_unique_filepath(base_path, filename):
     Returns:
         str: Full path with unique filename (e.g., "label_1.stl" if "label.stl" exists)
     """
-    filepath = bpy.path.abspath(base_path + filename)
+    directory = bpy.path.abspath(base_path)
+    filepath = os.path.join(directory, filename)
 
     # If file doesn't exist, return as-is
     if not os.path.exists(filepath):
@@ -145,7 +146,7 @@ def get_unique_filepath(base_path, filename):
     # Keep incrementing until we find a non-existing filename
     while True:
         new_filename = f"{name}_{counter}{ext}"
-        filepath = bpy.path.abspath(base_path + new_filename)
+        filepath = os.path.join(directory, new_filename)
         if not os.path.exists(filepath):
             return filepath
         counter += 1

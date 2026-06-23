@@ -26,7 +26,7 @@ A reusable Blender script for creating 3D printable closet labels with mounting 
 exec(open("/path/to/label_generator.py").read())
 
 # Create a single label
-label = create_label("Kitchen", "/path/to/Kitchen.stl")
+label = create_label(line1="Kitchen", export_path="/path/to/Kitchen.stl")
 
 # Create multiple labels
 labels = [("Pantry", "Pantry.stl"), ("Garage", "Garage.stl")]
@@ -43,7 +43,7 @@ Create a single label with full customization.
 
 **Basic Usage:**
 ```python
-label = create_label("My Label", "/path/to/output.stl")
+label = create_label(line1="My Label", export_path="/path/to/output.stl")
 ```
 
 **With Custom Settings:**
@@ -181,7 +181,7 @@ Useful if you want to manually adjust labels before exporting:
 
 ```python
 # Create labels in scene without exporting
-labels = create_label("Test Label", export_path=None)
+labels = create_label(line1="Test Label", export_path=None)
 
 # Manually adjust in Blender, then export when ready
 ```
@@ -323,7 +323,7 @@ class OBJECT_OT_create_label(bpy.types.Operator):
     bl_label = "Create Closet Label"
     
     def execute(self, context):
-        clg.create_label("Test", "/tmp/test.stl")
+        clg.create_label(line1="Test", export_path="/tmp/test.stl")
         return {'FINISHED'}
 ```
 

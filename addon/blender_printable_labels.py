@@ -23,7 +23,7 @@ Usage:
 bl_info = {
     "name": "Blender Printable Labels",
     "author": "Jonathan Porta",
-    "version": (1, 0, 0),
+    "version": (1, 1, 0),
     "blender": (3, 0, 0),
     "location": "View3D > Sidebar > Label Maker",
     "description": "Create 3D printable organization labels with mounting holes",
@@ -156,24 +156,24 @@ def create_label_mesh(context, props):
 
     z_pos = props.base_thickness / 2
 
-    # Collect all non-empty text lines
-    lines = []
-    if props.line1.strip():
-        lines.append(props.line1.strip())
-    if props.line2.strip():
-        lines.append(props.line2.strip())
-    if props.line3.strip():
-        lines.append(props.line3.strip())
-    if props.line4.strip():
-        lines.append(props.line4.strip())
+    # Get individual line sizes (use text_size as default if line size is 0)
+    raw_lines = [
+        (props.line1, props.line1_size if props.line1_size > 0 else props.text_size),
+        (props.line2, props.line2_size if props.line2_size > 0 else props.text_size),
+        (props.line3, props.line3_size if props.line3_size > 0 else props.text_size),
+        (props.line4, props.line4_size if props.line4_size > 0 else props.text_size)
+    ]
 
-    if not lines:
-        lines = ["Label"]  # Default if all empty
+    # Collect all non-empty text lines and their sizes
+    lines_with_sizes = [(text.strip(), size) for text, size in raw_lines if text.strip()]
+
+    if not lines_with_sizes:
+        lines_with_sizes = [("Label", props.text_size)]  # Default if all empty
 
     # 1. Create base
     bpy.ops.mesh.primitive_cube_add(location=(0, 0, z_pos))
     base = context.active_object
-    clean_name = sanitize_filename(lines[0])  # Use first line for object name
+    clean_name = sanitize_filename(lines_with_sizes[0][0])  # Use first line for object name
     base.name = f"Label_{clean_name}"
 
     base.scale = (props.base_width / 2, props.base_height / 2, props.base_thickness / 2)
@@ -183,17 +183,9 @@ def create_label_mesh(context, props):
     text_z = props.base_thickness + (props.text_extrude / 2)
     text_objects = []
 
-    # Get individual line sizes (use text_size as default if line size is 0)
-    line_sizes = [
-        props.line1_size if props.line1_size > 0 else props.text_size,
-        props.line2_size if props.line2_size > 0 else props.text_size,
-        props.line3_size if props.line3_size > 0 else props.text_size,
-        props.line4_size if props.line4_size > 0 else props.text_size,
-    ]
-
     # Calculate vertical spacing between lines based on actual line sizes
-    line_count = len(lines)
-    line_heights = [line_sizes[i] * 1.2 for i in range(line_count)]  # 20% spacing
+    line_count = len(lines_with_sizes)
+    line_heights = [size * 1.2 for _, size in lines_with_sizes]  # 20% spacing
     total_height = sum(line_heights)
 
     # Calculate starting Y position (centered vertically)
@@ -203,10 +195,7 @@ def create_label_mesh(context, props):
         start_y = 0
 
     current_y = start_y
-    for i, line_text in enumerate(lines):
-        # Get the size for this specific line
-        line_size = line_sizes[i]
-
+    for i, (line_text, line_size) in enumerate(lines_with_sizes):
         bpy.ops.object.text_add(location=(0, current_y, text_z))
         text_obj = context.active_object
         text_obj.data.body = line_text

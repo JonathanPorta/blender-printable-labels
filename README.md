@@ -86,7 +86,7 @@ exec(open("/path/to/label_generator.py").read())
 
 **2. Create Single Label:**
 ```python
-create_label("Kitchen", "/path/to/Kitchen.stl")
+create_label(line1="Kitchen", export_path="/path/to/Kitchen.stl")
 ```
 
 **3. Create Multiple Labels:**
@@ -237,8 +237,8 @@ Batch Creation panel
 **Script:**
 ```python
 # Simple single-line labels
-create_label("Kitchen", export_path="/output/Kitchen.stl")
-create_label("Bathroom", export_path="/output/Bathroom.stl")
+create_label(line1="Kitchen", export_path="/output/Kitchen.stl")
+create_label(line1="Bathroom", export_path="/output/Bathroom.stl")
 
 # Or multi-line
 create_label(

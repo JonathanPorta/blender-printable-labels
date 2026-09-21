@@ -1,0 +1,17 @@
+schema: blessed/repo/v1
+project: blender-printable-labels
+component: addon
+repo_type: library
+stage: active
+stack: [python, blender]
+standards: []
+capabilities: []
+tracked_dependencies:
+  ai_rules: null
+  blessed_scripts:
+    bws: null
+    ruam: null
+notes: |
+  Python addon and reusable label-generation script loaded inside Blender.
+  The addon creates label meshes and exports STL files for 3D printing.
+  No packaging, release, or CI standard is declared.
